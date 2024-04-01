@@ -1,4 +1,4 @@
-name: dalle
+name: mindgap
 channels:
   - rmg
   - conda-forge
@@ -241,4 +241,4 @@ dependencies:
     - yacs==0.1.8
     - yarl==1.7.2
     - zipp==3.7.0
-prefix: ANONYMOUS_ROOTDIR/develop/miniconda3/envs/dalle
+# prefix: ANONYMOUS_ROOTDIR/develop/miniconda3/envs/dalle

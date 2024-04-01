@@ -1,0 +1,2 @@
+train_img_dir : '/faststorage/COCO2017/train2017'
+train_annotation_file : '/faststorage/COCO2017/annotations/captions_train2017.json'
