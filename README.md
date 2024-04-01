@@ -1,4 +1,4 @@
-# Mind the Gap: Understanding the Modality Gap in Multi-modal Contrastive Representation Learning
+<!-- # Mind the Gap: Understanding the Modality Gap in Multi-modal Contrastive Representation Learning
 
 [![Website shields.io](https://img.shields.io/website-up-down-green-red/http/shields.io.svg)](https://modalitygap.readthedocs.io)
 [![Documentation Status](https://readthedocs.org/projects/modalitygap/badge/?version=latest)](http://modalitygap.readthedocs.io/?badge=latest)
@@ -171,4 +171,4 @@ It is encouraging that a simple gap offsetting approach can lead to a consistent
 }
 ```
 
-![image](https://user-images.githubusercontent.com/32794044/192175707-93b48fd3-ef06-465e-a43b-ff6a82503a66.png)
+![image](https://user-images.githubusercontent.com/32794044/192175707-93b48fd3-ef06-465e-a43b-ff6a82503a66.png) -->
