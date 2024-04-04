@@ -145,3 +145,4 @@ checkpoint*
 *.vscode
 data
 saved_ckpts
+*.json

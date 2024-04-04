@@ -21,7 +21,8 @@ from torch.optim import Adam, AdamW # both are same but AdamW has a default weig
 import argparse
 
 
-DATA_CONFIG_PATH = 'dataloader/data_config.yaml'
+# DATA_CONFIG_PATH = 'dataloader/data_config.yaml'
+DATA_CONFIG_PATH = 'dataloader/data_config_tiny.yaml'
 TRAINER_CONFIG_PATH = 'utils/train_config.yaml'
 MODEL_CONFIG_PATH = 'utils/model_config.yaml'
 
@@ -128,7 +129,8 @@ def train(config, train_dataset, model):
                     )
 
                 if (config.save_steps > 0 and global_step % config.save_steps == 0) or \
-                        global_step == t_total or (global_step % config.small_save_steps == 0 and global_step <= config.small_save_step_before):
+                        global_step == t_total or (global_step % config.small_save_steps == 0 and global_step <= config.small_save_step_before) \
+                        or global_step <= 10:
                     # saving checkpoint
                     save_checkpoint(config, epoch, global_step, model, optimizer) 
                     
