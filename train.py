@@ -41,7 +41,8 @@ def train(config, train_dataset, model):
     optimizer = AdamW(model.parameters(), lr=config.optimizer.params.lr, eps=config.optimizer.params.eps, weight_decay=config.optimizer.params.weight_decay)
 
     # Warmup iterations = 20% of total iterations
-    num_warmup_steps = int(0.20 * t_total)
+    # num_warmup_steps = int(0.20 * t_total)
+    num_warmup_steps = 0
     scheduler = get_cosine_schedule_with_warmup(optimizer, num_warmup_steps= num_warmup_steps, num_training_steps= t_total)
 
     if config.n_gpu > 1:
@@ -142,7 +143,7 @@ def save_checkpoint(config, epoch, global_step, model, optimizer):
     '''
     Checkpointing. Saves model and optimizer state_dict() and current epoch and global training steps.
     '''
-    checkpoint_path = os.path.join(config.saved_checkpoints, f'checkpoint_{epoch}_{global_step}.pt')
+    checkpoint_path = os.path.join(config.saved_checkpoints, f'checkpoint_{global_step}.pt')
     save_num = 0
     while (save_num < 10):
         try:
