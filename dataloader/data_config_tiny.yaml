@@ -1,2 +1,2 @@
-train_img_dir : '/faststorage/COCO2017/train2017'
-train_annotation_file : '/home/siyich/Modality-Gap/dataloader/test.json'
+train_img_dir : '/scratch/qingqu_root/qingqu1/shared_data/COCO2017/coco2017/train2017'
+train_annotation_file : '/scratch/qingqu_root/qingqu1/siyich/multimodal-gap/dataloader/test.json'

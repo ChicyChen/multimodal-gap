@@ -172,7 +172,7 @@ dependencies:
     - ptyprocess==0.7.0
     - pyasn1==0.4.8
     - pyasn1-modules==0.2.8
-    - pycocotools==2.0
+    - pycocotools
     - pydeprecate==0.3.1
     - pydicom==2.2.2
     - pydot==1.4.2

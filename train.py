@@ -21,10 +21,7 @@ from torch.optim import Adam, AdamW # both are same but AdamW has a default weig
 import argparse
 
 
-# DATA_CONFIG_PATH = 'dataloader/data_config.yaml'
-DATA_CONFIG_PATH = 'dataloader/data_config_tiny.yaml'
-TRAINER_CONFIG_PATH = 'utils/train_config.yaml'
-MODEL_CONFIG_PATH = 'utils/model_config.yaml'
+
 
 def train(config, train_dataset, model):
     '''
@@ -43,7 +40,8 @@ def train(config, train_dataset, model):
     # Warmup iterations = 20% of total iterations
     # num_warmup_steps = int(0.20 * t_total)
     num_warmup_steps = 0
-    scheduler = get_cosine_schedule_with_warmup(optimizer, num_warmup_steps= num_warmup_steps, num_training_steps= t_total)
+    # scheduler = get_cosine_schedule_with_warmup(optimizer, num_warmup_steps= num_warmup_steps, num_training_steps= t_total)
+    scheduler = None
 
     if config.n_gpu > 1:
         model = torch.nn.DataParallel(model)
@@ -87,7 +85,7 @@ def train(config, train_dataset, model):
             #     logit_scale = model.module.logit_scale.exp()
 
             # fixed temperature
-            temp = 1e-1
+            temp = config.temp
             logit_scale = torch.tensor(1/temp)
 
             logits_per_image = logit_scale * image_features @ text_features.t()
@@ -175,12 +173,27 @@ def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--train_img_dir", default=None, type=str, required=False, help="path of directory containing COCO training images")
+    parser.add_argument("--DATA_CONFIG_PATH", default='dataloader/data_config.yaml', type=str, required=False)
+    parser.add_argument("--TRAINER_CONFIG_PATH", default='utils/train_config.yaml', type=str, required=False, help="path of directory containing COCO training images")
+    parser.add_argument("--MODEL_CONFIG_PATH", default='utils/model_config.yaml', type=str, required=False, help="path of directory containing COCO training images")
     parser.add_argument("--train_annotation_file", default=None, type=str, required=False, help="path of COCO annotation file")
+    parser.add_argument("--saved_checkpoints", default=None, type=str, required=False)
+    parser.add_argument("--logs", default=None, type=str, required=False)
+    parser.add_argument("--num_train_epochs", default=None, type=int, required=False)
+    parser.add_argument("--lr", default=None, type=float, required=False)
+
+
+
     args = parser.parse_args()
 
-    data_config = load_config_file(DATA_CONFIG_PATH)
-    train_config = load_config_file(TRAINER_CONFIG_PATH)
-    model_config = load_config_file(MODEL_CONFIG_PATH)
+    # DATA_CONFIG_PATH = 'dataloader/data_config.yaml'
+    # # DATA_CONFIG_PATH = 'dataloader/data_config_tiny.yaml'
+    # TRAINER_CONFIG_PATH = 'utils/train_config.yaml'
+    # MODEL_CONFIG_PATH = 'utils/model_config.yaml'
+
+    data_config = load_config_file(args.DATA_CONFIG_PATH)
+    train_config = load_config_file(args.TRAINER_CONFIG_PATH)
+    model_config = load_config_file(args.MODEL_CONFIG_PATH)
 
     config = OmegaConf.merge(train_config, data_config)
 
@@ -190,6 +203,15 @@ def main():
         config.train_img_dir = args.train_img_dir
     if args.train_annotation_file : 
         config.train_annotation_file = args.train_annotation_file
+    if args.saved_checkpoints : 
+        config.saved_checkpoints = args.saved_checkpoints
+    if args.logs : 
+        config.logs = args.logs
+    if args.num_train_epochs : 
+        config.num_train_epochs = args.num_train_epochs
+    if args.lr :
+        config.optimizer.params.lr = args.lr
+
         
 
     global logger

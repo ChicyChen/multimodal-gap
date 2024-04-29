@@ -11,9 +11,9 @@ save_steps : 100 # 1000 steps take 1 hour with 4 GTX1080 GPUs and batch size = 2
 small_save_steps : 10
 small_save_step_before: 200
 
-saved_checkpoints : 3_shrink_nw_train_checkpoints_1e-2_5e-4_1e-1
-logs : 3_shrink_nw_logs_1e-2_5e-4
-temp : 0.01
+saved_checkpoints : 3_shrink_nw_train_checkpoints_1_5e-4_1e-1
+logs : 3_shrink_nw_logs_1_5e-4
+temp : 1.0
 
 optimizer:
   params:
