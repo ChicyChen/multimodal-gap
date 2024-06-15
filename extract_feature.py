@@ -33,7 +33,8 @@ from PIL import Image
 from torchvision.transforms import Compose, Resize, CenterCrop, ToTensor, Normalize
 from utils import set_seed, mkdir, setup_logger, load_config_file
 
-data = json.load(open('/scratch/qingqu_root/qingqu1/siyich/multimodal-gap/dataloader/test.json'))
+data = json.load(open('/scratch/qingqu_root/qingqu1/siyich/multimodal-gap/dataloader/test_num2.json'))
+# data = json.load(open('/scratch/qingqu_root/qingqu1/siyich/multimodal-gap/dataloader/test.json'))
 id2file = {item['id']: item['coco_url'] for item in data['images']}
 id2caption = {item['image_id']: item['caption'] for item in data['annotations']}
 file2caption = {id2file[id]: id2caption[id] for id in id2file}
@@ -53,21 +54,16 @@ def _transform(n_px):
 transform = _transform(224)
 tokenizer = SimpleTokenizer()
 
-num_imgs = 256
-
-# step_list = [1,5,10,50,100,200,1000,2000,3000,4000,5000,6000,7000,8000,9000,10000]
-# step_list = [300,400,500,600,700,800,900]
-# step_list = [12000,13000,14000,15000,16000]
-# step_list = [600,700,800,900,1000,1100,1200,1300,1400,1500,1600,1700,1800,1900,2000]
-# step_list = [1,5,10,50,100,200,300,400,500,600,700,800,900,1000,2000,3000,4000,5000,6000,7000,8000,9000,10000,11000,12000,13000,14000,15000,16000]
-# save_folder = '/scratch/qingqu_root/qingqu1/siyich/multimodal-gap/3_shrink_nw_train_checkpoints_1_5e-4_1e-1'
-
-save_folder = '/scratch/qingqu_root/qingqu1/siyich/multimodal-gap/3_shrink_tiny_nw_train_checkpoints_1e-1_5e-4_1e-1'
-step_list = [1,5,10,50,100,200,300,400,500,600,700,800,900,1000,2000,3000,4000,5000,6000,7000,8000,9000,10000]
+num_imgs = 2
 
 
 
-# step = 10
+save_folder = "/scratch/qingqu_root/qingqu1/siyich/multimodal-gap/3_shrink_nw_train_checkpoints_num2_0.8_100"
+step_list = [110]
+
+
+
+
 device = "cuda"
 _, preprocess = clip.load('RN50', "cpu")
 
@@ -88,7 +84,7 @@ for step in step_list:
     model = model.to(device)
     model.eval()
 
-    image_features, text_features, image_inputs, text_inputs = [], [], [], []
+    image_features, image_features_nm, image_norm, text_features,text_features_nm, text_norm, image_inputs, text_inputs = [], [], [], [], [], [], [], []
     for filename in tqdm(file2caption):
         
         caption = file2caption[filename]
@@ -108,10 +104,14 @@ for step in step_list:
         with torch.no_grad():
 
             image_feature = model.encode_image(image_input)
+            image_features_nm.append(image_feature.cpu().numpy()[0])
+            image_norm.append(image_feature.norm(dim=-1).cpu().numpy()[0])
             image_feature /= image_feature.norm(dim=-1, keepdim=True)
             image_feature = image_feature.cpu().numpy()[0]
 
             text_feature = model.encode_text(text_input)
+            text_features_nm.append(text_feature.cpu().numpy()[0])
+            text_norm.append(text_feature.norm(dim=-1).cpu().numpy()[0])
             text_feature /= text_feature.norm(dim=-1, keepdim=True)
             text_feature = text_feature.cpu().numpy()[0]
         
@@ -126,15 +126,25 @@ for step in step_list:
     text_inputs = torch.tensor(text_inputs)
     image_features = torch.tensor(image_features)
     text_features = torch.tensor(text_features)
+    image_features_nm = torch.tensor(image_features_nm)
+    text_features_nm = torch.tensor(text_features_nm)
+    image_norm = torch.tensor(image_norm)
+    text_norm = torch.tensor(text_norm)
+
+    mean_image_norm = torch.mean(image_norm)
+    mean_text_norm = torch.mean(text_norm)
+    logger.info(f"Mean image norm: {mean_image_norm}")
+    logger.info(f"Mean text norm: {mean_text_norm}")
 
     inter = (image_features.float() @ text_features.float().T)
     mean_sim = torch.diagonal(inter).float().mean()
     logger.info(f"Mean cosine similarity: {mean_sim}")
-    # print("Mean cosine similarity", mean_sim)
     mean_acc = (inter.argmax(dim=-1) == torch.arange(num_imgs)).float().mean()
     logger.info(f"Mean accuracy: {mean_acc}")
-    # print("Mean accuracy", mean_acc)
+    
 
-    save_path = os.path.join(save_folder, f'shrink_tiny_1e-1-5e-6_{step}.npy')
-
+    save_path = os.path.join(save_folder, f'{step}.npy')
     np.save(save_path, [image_features.float().numpy(), text_features.float().numpy()])
+
+    save_path = os.path.join(save_folder, f'nm_{step}.npy')
+    np.save(save_path, [image_features_nm.float().numpy(), text_features_nm.float().numpy()])

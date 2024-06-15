@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import os
 
 # root_list = [".3_shrink_nw_logs_1_5e-4", "3_shrink_nw_logs_1e-1_5e-4", "3_shrink_nw_logs_1e-2_5e-4", "3_shrink_nw_logs_5e-1_5e-4"]
-root_list = ["3_shrink_tiny_nw_logs_1e-1_5e-4"]
+root_list = ["3_shrink_tiny_nw_train_checkpoints_learn_5e-4_1e-1"]
 for root in root_list:
     # Using readlines()
     file1 = open(os.path.join(root, 'training_logs.txt'), 'r')

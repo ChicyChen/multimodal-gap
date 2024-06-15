@@ -45,13 +45,6 @@ def train(config, train_dataset, model):
 
     if config.n_gpu > 1:
         model = torch.nn.DataParallel(model)
-
-    # edit temp
-    if config.temp:
-        temp = config.temp
-        # model.logit_scale = torch.nn.Parameter(torch.ones([]) * np.log(1 / temp))
-        model.logit_scale.data = torch.ones([]) * np.log(1 / temp)
-        model.logit_scale.requires_grad = True
     
     model = model.to(torch.device(config.device))
     model.train()
@@ -82,29 +75,14 @@ def train(config, train_dataset, model):
             
             image_features, text_features = model(input_images, input_texts)
 
-            # normalized features
-            # siyi: I do not normalize here for testing! Need to add back!
-            image_features = image_features / image_features.norm(dim=-1, keepdim=True)
-            text_features = text_features / text_features.norm(dim=-1, keepdim=True)
+            image_pos = torch.zeros_like(image_features)
+            image_pos[::,-1] = image_pos[::,-1] + 1
+            text_pos = torch.zeros_like(text_features)
+            text_pos[::,-1] = text_pos[::,-1] - 1
 
-            if config.learn_temp:
-                if config.n_gpu == 1:
-                    logit_scale = model.logit_scale.exp()
-                elif config.n_gpu > 1:
-                    logit_scale = model.module.logit_scale.exp()
-
-            else:
-                # fixed temperature
-                temp = config.temp
-                logit_scale = torch.tensor(1/temp)
-
-            logits_per_image = logit_scale * image_features @ text_features.t()
-            logits_per_text = logit_scale * text_features @ image_features.t()
-
-            labels = torch.arange(len(logits_per_image)).to(logits_per_image.device)
             # loss
-            image_loss = F.cross_entropy(logits_per_image, labels)
-            text_loss  = F.cross_entropy(logits_per_text, labels)
+            image_loss = F.mse_loss(image_features, image_pos)
+            text_loss  = F.mse_loss(text_features, text_pos)
 
             loss = (image_loss + text_loss) / 2
 
@@ -121,11 +99,6 @@ def train(config, train_dataset, model):
                 global_step += 1
                 optimizer.step() # PYTORCH 1.x : call optimizer.step() first then scheduler.step()
                 
-                # logit scaling set as max 100 as mentioned in CLIP paper # log(100) = 4.6052
-                if config.n_gpu == 1:
-                    model.logit_scale.data = torch.clamp(model.logit_scale.data, 0, 4.6052)
-                elif config.n_gpu > 1:
-                    model.module.logit_scale.data = torch.clamp(model.module.logit_scale.data, 0, 4.6052)
 
                 if scheduler:
                     scheduler.step() 
@@ -136,13 +109,9 @@ def train(config, train_dataset, model):
                     logger.info("Epoch: {}, global_step: {}, lr: {:.6f}, loss: {:.4f} ({:.4f})".format(epoch, global_step, 
                         optimizer.param_groups[0]["lr"], loss.item(), global_loss / global_step)
                     )
-                    logger.info("Epoch: {}, global_step: {}, temp: {:.4f}".format(epoch, global_step, 
-                        (1/logit_scale).item())
-                    )
 
                 if (config.save_steps > 0 and global_step % config.save_steps == 0) or \
-                        global_step == t_total or (global_step % config.small_save_steps == 0 and global_step <= config.small_save_step_before) \
-                        or global_step <= 10:
+                        global_step == t_total:
                     # saving checkpoint
                     save_checkpoint(config, epoch, global_step, model, optimizer) 
                     
@@ -185,15 +154,14 @@ def save_checkpoint(config, epoch, global_step, model, optimizer):
 def main():
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--DATA_CONFIG_PATH", default=None, type=str, required=False)
-    parser.add_argument("--TRAINER_CONFIG_PATH", default=None, type=str, required=False, help="path of directory containing COCO training images")
+    parser.add_argument("--DATA_CONFIG_PATH", default='dataloader/data_config_num2.yaml', type=str, required=False)
+    parser.add_argument("--TRAINER_CONFIG_PATH", default='utils/train_config_initial.yaml', type=str, required=False, help="path of directory containing COCO training images")
     parser.add_argument("--MODEL_CONFIG_PATH", default='utils/model_config.yaml', type=str, required=False, help="path of directory containing COCO training images")
     parser.add_argument("--train_annotation_file", default=None, type=str, required=False, help="path of COCO annotation file")
     parser.add_argument("--saved_checkpoints", default=None, type=str, required=False)
     parser.add_argument("--logs", default=None, type=str, required=False)
     parser.add_argument("--num_train_epochs", default=None, type=int, required=False)
     parser.add_argument("--lr", default=None, type=float, required=False)
-    parser.add_argument("--learn_temp", default=None, type=int, required=False)
 
     
 
@@ -214,7 +182,6 @@ def main():
 
     # config = OmegaConf.merge(OmegaConf.create(vars(args)), config)  
     # merging cli arguments, if data path given in cli args use those
-
     if args.train_annotation_file : 
         config.train_annotation_file = args.train_annotation_file
     if args.saved_checkpoints : 
@@ -225,8 +192,6 @@ def main():
         config.num_train_epochs = args.num_train_epochs
     if args.lr :
         config.optimizer.params.lr = args.lr
-    if args.learn_temp :
-        config.learn_temp = args.learn_temp
 
         
 
@@ -249,13 +214,6 @@ def main():
     model_params['vision_layers'] = tuple(model_params['vision_layers'])
     model_params['vision_patch_size'] = None
     model = CLIP(**model_params)
-
-    # load certain initialization
-    pretrained_path = '/scratch/qingqu_root/qingqu1/siyich/multimodal-gap/initial_checkpoints/checkpoint_100.pt'
-    checkpoint = torch.load(pretrained_path)
-    state_dict = checkpoint['model_state_dict']
-    model.load_state_dict(state_dict)
-    # model = model.to(device)
 
     logger.info(f"Training/evaluation parameters {train_config}")
 
